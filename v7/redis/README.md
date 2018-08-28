@@ -19,6 +19,7 @@ CLAY_STORAGE_POSTGRES_HOST=# the host of the Postgres instance to PUT to
 REDIS_HOST=# the host of the redis instance to scan for data
 REDIS_PORT=# the port of the redis instance to scan for data
 REDIS_HASH=# the hash key of the redis instance to scan for data
+LAYOUTS_WHITELIST=["layout", "another-layout"]# a list of component names that should be persisted as layouts. Must use double-quoted strings to appease JSON.parse
 ```
 
 ## Usage

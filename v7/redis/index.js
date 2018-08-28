@@ -9,11 +9,11 @@ const { promisify } = require('util'),
   h = require('highland'),
   pg = require('amphora-storage-postgres'),
   args = require('yargs').argv,
-  { REDIS_HOST, REDIS_PORT, REDIS_HASH } = process.env,
+  { REDIS_HOST, REDIS_PORT, REDIS_HASH, LAYOUTS_WHITELIST } = process.env,
   MERGE_LIMIT = args.mergeLimit || 1,
   MATCH_PATTERN = args.match || '*';
 
-let redisClient, client;
+let redisClient, client, LAYOUTS;
 
 /**
  * scan the redis db recursively until cursor is 0 again
@@ -57,21 +57,60 @@ function isPublishedDefaultInstance(cmpt) {
 function insertItem(item) {
   return h(
     pg.put(item.key, item.value)
-      .catch((e) => console.log(`Error persisting ${item.key}: ${e.message}`, item.value))
+      .catch((e) => {
+        console.log(`Error persisting ${item.key}: ${e.message}`, item.value);
+        item.error = true;
+      })
       .then(() => item)
   );
+}
+
+/**
+ * Looks for components from the layouts whitelist and changes their uri to use the _layouts path
+ * Looks for pages and updates uris for a layout to use the _layouts path
+ *
+ * @param {Object} item
+ * @returns {Object}
+ */
+function transformLayoutRef(item) {
+  const componentName = clayUtil.getComponentName(item.key);
+  let pageLayout, pageObj;
+
+  if (LAYOUTS.some((layoutName) => layoutName === componentName)) {
+    item.key = item.key.replace('_components', '_layouts');
+  }
+
+  if (clayUtil.isPage(item.key)) {
+    pageObj = JSON.parse(item.value);
+    pageLayout = pageObj.layout;
+
+    if (pageLayout) {
+      pageObj.layout = pageLayout.replace('_components', '_layouts');
+      item.value = JSON.stringify(pageObj);
+    }
+  }
+
+  return item;
 }
 
 function insertItems(items) {
   h(items)
     .reject(isPublishedDefaultInstance)
+    .map(h.of)
+    .mergeWithLimit(MERGE_LIMIT)
+    .map(transformLayoutRef)
     .map(insertItem)
     .mergeWithLimit(MERGE_LIMIT)
+    .map(display)
     .each(h.log)
     .done(() => {
       console.log('Migration finished');
       process.exit();
     });
+}
+
+function display(item) {
+  return `${item.error ? 'ERROR' : 'SUCCESS'}: ${item.key}`;
 }
 
 if (!REDIS_HOST) {
@@ -84,6 +123,16 @@ if (!REDIS_PORT) {
 
 if (!REDIS_HASH) {
   throw new Error('No redis hash set');
+}
+
+if (LAYOUTS_WHITELIST && !_.isArray(LAYOUTS_WHITELIST)) {
+  try {
+    LAYOUTS = JSON.parse(LAYOUTS_WHITELIST);
+  } catch(err) {
+    throw err;
+  }
+} else {
+  LAYOUTS = LAYOUTS_WHITELIST || [];
 }
 
 redisClient = redis.createClient(REDIS_PORT, REDIS_HOST);
