@@ -19,6 +19,7 @@
   "dependencies": {
     "amphora-storage-postgres": "0.0.4",
     "clayutils": "^2.6.0",
+    "dotenv": "^6.0.0",
     "highland": "^2.13.0",
     "lodash": "^4.17.10",
     "redis": "^2.8.0",

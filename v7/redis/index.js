@@ -1,5 +1,7 @@
 'use strict';
 
+require('dotenv').config();
+
 const {promisify} = require('util'),
   _ = require('lodash'),
   redis = require('redis'),
@@ -7,14 +9,12 @@ const {promisify} = require('util'),
   h = require('highland'),
   pg = require('amphora-storage-postgres'),
   args = require('yargs').argv,
-  REDIS_HOST = args.redisHost || '127.0.0.1',
-  REDIS_PORT = args.redisPort || 6379,
-  REDIS_HASH = args.redisHash || 'mydb:h',
+  { REDIS_HOST, REDIS_PORT, REDIS_HASH } = process.env,
   methods = ['hscan'],
-  redisClient = redis.createClient(REDIS_PORT, REDIS_HOST),
-  client = promisifyRedisClient(redisClient, methods),
   MERGE_LIMIT = args.mergeLimit || 1,
   MATCH_PATTERN = args.match || '*';
+
+let redisClient, client;
 
 /**
  * Promisifies redis client methods.
@@ -88,6 +88,21 @@ function insertItems(items) {
       process.exit();
     });
 }
+
+if (!REDIS_HOST) {
+  throw new Error('No redis host set');
+}
+
+if (!REDIS_PORT) {
+  throw new Error('No redis port set');
+}
+
+if (!REDIS_HASH) {
+  throw new Error('No redis hash set');
+}
+
+redisClient = redis.createClient(REDIS_PORT, REDIS_HOST);
+client = promisifyRedisClient(redisClient, methods);
 
 pg.setup()
   .then(() => scan(0, [], MATCH_PATTERN)) // match can be changed to '*_pages*' '*_components*' etc to only scan for certain types
