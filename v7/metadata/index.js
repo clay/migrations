@@ -18,9 +18,16 @@ function putMetadata(doc) {
 
   return h(
     pg.putMeta(_id, _source)
-      .catch((e) => console.log(`Error persisting metadata for ${_id}: ${e.message}`, _source))
-      .then(() => ({ key: _id, value: _source }))
+      .catch((e) => {
+        console.log(`Error persisting metadata for ${_id}: ${e.message}`, _source);
+        doc.error = true;
+      })
+      .then(() => ({ key: _id, value: _source, error: doc.error }))
   );
+}
+
+function display(doc) {
+  return `${doc.error ? 'ERROR' : 'SUCCESS'}: ${doc.key}`;
 }
 
 pg.setup()
@@ -29,8 +36,11 @@ pg.setup()
       .split()
       .compact()
       .map(JSON.parse) // parse stringified documents
+      .map(h.of)
+      .mergeWithLimit(MERGE_LIMIT)
       .map(putMetadata)
       .mergeWithLimit(MERGE_LIMIT)
+      .map(display)
       .each(h.log)
       .done(() => {
         console.log('Migration finished');

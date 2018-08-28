@@ -57,7 +57,10 @@ function isPublishedDefaultInstance(cmpt) {
 function insertItem(item) {
   return h(
     pg.put(item.key, item.value)
-      .catch((e) => console.log(`Error persisting ${item.key}: ${e.message}`, item.value))
+      .catch((e) => {
+        console.log(`Error persisting ${item.key}: ${e.message}`, item.value);
+        item.error = true;
+      })
       .then(() => item)
   );
 }
@@ -65,13 +68,20 @@ function insertItem(item) {
 function insertItems(items) {
   h(items)
     .reject(isPublishedDefaultInstance)
+    .map((item) => h.of(item))
+    .mergeWithLimit(MERGE_LIMIT)
     .map(insertItem)
     .mergeWithLimit(MERGE_LIMIT)
+    .map(display)
     .each(h.log)
     .done(() => {
       console.log('Migration finished');
       process.exit();
     });
+}
+
+function display(item) {
+  return `${item.error ? 'ERROR' : 'SUCCESS'}: ${item.key}`;
 }
 
 if (!REDIS_HOST) {
