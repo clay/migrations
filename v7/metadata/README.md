@@ -37,6 +37,7 @@ You should then be able to run ess commands that can pipe results directly into 
 Once ess is setup, use the GET command to retrieve a stream of elastic documents from the pages index you want to migrate data from, then simply pipe the results into an invocation of this script.
 
 Here is an example that migrates all the documents in a local pages index:
+
 ```
 ess get localhost:9200/local_pages | node v7/metadata [options]
 ```
@@ -44,3 +45,17 @@ ess get localhost:9200/local_pages | node v7/metadata [options]
 ## Arguments
 
 * `--mergeLimit` sets the number of concurrent PUT requests to Postgres. Defaults to `1` if not set
+
+## Examples
+
+```
+ess get localhost:9200/local_pages | node v7/metadata
+```
+
+Persists local pages metadata into postgres
+
+```
+ess get localhost:9200/local_layouts | node v7/metadata
+```
+
+Persists local layouts metadata into postgres
