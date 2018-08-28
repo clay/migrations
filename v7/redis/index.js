@@ -68,7 +68,7 @@ function insertItem(item) {
 function insertItems(items) {
   h(items)
     .reject(isPublishedDefaultInstance)
-    .map((item) => h.of(item))
+    .map(h.of)
     .mergeWithLimit(MERGE_LIMIT)
     .map(insertItem)
     .mergeWithLimit(MERGE_LIMIT)
