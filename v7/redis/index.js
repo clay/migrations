@@ -2,7 +2,7 @@
 
 require('dotenv').config();
 
-const {promisify} = require('util'),
+const { promisify } = require('util'),
   _ = require('lodash'),
   redis = require('redis'),
   clayUtil = require('clayutils'),
@@ -10,25 +10,10 @@ const {promisify} = require('util'),
   pg = require('amphora-storage-postgres'),
   args = require('yargs').argv,
   { REDIS_HOST, REDIS_PORT, REDIS_HASH } = process.env,
-  methods = ['hscan'],
   MERGE_LIMIT = args.mergeLimit || 1,
   MATCH_PATTERN = args.match || '*';
 
 let redisClient, client;
-
-/**
- * Promisifies redis client methods.
- * @param {RedisClient} client
- * @param {String[]} methods
- * @returns {Object}
- */
-function promisifyRedisClient(client, methods) {
-  return methods.reduce((promisifiedClient, method) => {
-    promisifiedClient[method] = promisify(client[method]).bind(client);
-
-    return promisifiedClient;
-  }, {});
-}
 
 /**
  * scan the redis db recursively until cursor is 0 again
@@ -102,7 +87,7 @@ if (!REDIS_HASH) {
 }
 
 redisClient = redis.createClient(REDIS_PORT, REDIS_HOST);
-client = promisifyRedisClient(redisClient, methods);
+client = { hscan: promisify(redisClient.hscan).bind(redisClient) };
 
 pg.setup()
   .then(() => scan(0, [], MATCH_PATTERN)) // match can be changed to '*_pages*' '*_components*' etc to only scan for certain types
