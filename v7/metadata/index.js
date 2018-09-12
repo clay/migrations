@@ -14,11 +14,18 @@ const h = require('highland'),
  * @param {Object} doc
  * @returns {Stream}
  */
-function putMetadata(doc) {
+function saveMetadata(doc) {
   const { _id, _source } = doc;
 
   return h(
-    pg.putMeta(_id, _source)
+    pg.getMeta(_id)
+      .then((meta) => {
+        if (meta) {
+          return pg.patchMeta(_id, _source);
+        }
+
+        return pg.putMeta(_id, _source);
+      })
       .catch((e) => {
         console.log(`Error persisting metadata for ${_id}: ${e.message}`, _source);
         doc.error = true;
@@ -38,14 +45,26 @@ function display(doc) {
  * @param {Object} doc
  * @returns {Object}
  */
-function sanitizeLayoutDoc(doc) {
+function sanitizeDoc(doc) {
   if (clayUtil.isComponent(doc._id)) {
     doc._id = doc._id.replace('_components', '_layouts');
-
-    if (doc._source.uri) {
-      delete doc._source.uri; // remove unused uri field (its the same as the _id)
-    }
   }
+
+  if (doc._source.uri) {
+    delete doc._source.uri; // remove unused uri field (its the same as the _id)
+  }
+
+  return doc;
+}
+
+function formatTimeStamps(doc) {
+  const src = Object.assign({}, doc._source);
+
+  if (src.createdAt) {
+    src.createdAt = new Date(src.createdAt).toISOString();
+  }
+
+  doc._source = src;
 
   return doc;
 }
@@ -58,8 +77,9 @@ pg.setup()
       .map(JSON.parse) // parse stringified documents
       .map(h.of)
       .mergeWithLimit(MERGE_LIMIT)
-      .map(sanitizeLayoutDoc)
-      .map(putMetadata)
+      .map(sanitizeDoc)
+      .map(formatTimeStamps)
+      .map(saveMetadata)
       .mergeWithLimit(MERGE_LIMIT)
       .map(display)
       .each(h.log)
