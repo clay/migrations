@@ -45,7 +45,35 @@ function scan(cursor, accu, match) {
  * @returns {boolean}
  */
 function isPublishedDefaultInstance(cmpt) {
-  return clayUtil.isPublished(cmpt.key) && !cmpt.key.includes('instances');
+  return clayUtil.isPublished(cmpt.key) && clayUtil.isDefaultComponent(clayUtil.replaceVersion(cmpt.key));
+}
+
+function splitDataAndMeta(item) {
+  let data, meta, val;
+
+  if (!clayUtil.isPage(item.key)) return item;
+
+  val = JSON.parse(item.value);
+
+  data = _.omit(val, ['customUrl', 'urlHistory', 'lastModified']);
+  meta = _.pick(val, ['customUrl', 'urlHistory', 'lastModified', 'url']);
+
+  if (meta.customUrl) {
+    meta.url = meta.customUrl;
+
+    _.unset(meta, 'customUrl');
+  }
+
+  if (meta.lastModified) {
+    meta.publishTime = new Date(meta.lastModified).toISOString();
+
+    _.unset(meta, 'lastModified');
+  }
+
+  item.value = JSON.stringify(data);
+  item.meta = meta;
+
+  return item;
 }
 
 /**
@@ -59,6 +87,29 @@ function insertItem(item) {
     pg.put(item.key, item.value)
       .catch((e) => {
         console.log(`Error persisting ${item.key}: ${e.message}`, item.value);
+        item.error = true;
+      })
+      .then(() => item)
+  );
+}
+
+function insertMeta(item) {
+  const uri = clayUtil.replaceVersion(item.key);
+
+  if (!clayUtil.isPage(item.key) || !item.meta || !clayUtil.isPublished(item.key)) return h(Promise.resolve(item));
+
+  return h(
+    pg.getMeta(uri)
+      .then((meta) => {
+        // patch doesnt work if the meta object is NULL, so do a put in that case
+        if (meta) {
+          return pg.patchMeta(uri, item.meta);
+        }
+
+        return pg.putMeta(uri, JSON.stringify(item.meta))
+      })
+      .catch((e) => {
+        console.log(`Error persisting metadata for ${uri}: ${e.message}`, item.meta);
         item.error = true;
       })
       .then(() => item)
@@ -98,8 +149,11 @@ function insertItems(items) {
     .reject(isPublishedDefaultInstance)
     .map(h.of)
     .mergeWithLimit(MERGE_LIMIT)
+    .map(splitDataAndMeta)
     .map(transformLayoutRef)
     .map(insertItem)
+    .mergeWithLimit(MERGE_LIMIT)
+    .map(insertMeta)
     .mergeWithLimit(MERGE_LIMIT)
     .map(display)
     .each(h.log)
