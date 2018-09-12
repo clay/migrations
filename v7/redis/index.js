@@ -94,20 +94,22 @@ function insertItem(item) {
 }
 
 function insertMeta(item) {
+  const uri = clayUtil.replaceVersion(item.key);
+
   if (!clayUtil.isPage(item.key) || !item.meta || !clayUtil.isPublished(item.key)) return h(Promise.resolve(item));
 
   return h(
-    pg.getMeta(clayUtil.replaceVersion(item.key))
+    pg.getMeta(uri)
       .then((meta) => {
         // patch doesnt work if the meta object is NULL, so do a put in that case
         if (meta) {
-          return pg.patchMeta(clayUtil.replaceVersion(item.key), item.meta);
+          return pg.patchMeta(uri, item.meta);
         }
 
-        return pg.putMeta(clayUtil.replaceVersion(item.key), JSON.stringify(item.meta))
+        return pg.putMeta(uri, JSON.stringify(item.meta))
       })
       .catch((e) => {
-        console.log(`Error persisting metadata for ${clayUtil.replaceVersion(item.key)}: ${e.message}`, item.meta);
+        console.log(`Error persisting metadata for ${uri}: ${e.message}`, item.meta);
         item.error = true;
       })
       .then(() => item)
