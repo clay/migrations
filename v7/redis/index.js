@@ -65,7 +65,7 @@ function splitDataAndMeta(item) {
   }
 
   if (meta.lastModified) {
-    meta.updateTime = new Date(meta.lastModified).toISOString();
+    meta.publishTime = new Date(meta.lastModified).toISOString();
 
     _.unset(meta, 'lastModified');
   }
