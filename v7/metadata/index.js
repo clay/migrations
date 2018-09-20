@@ -64,6 +64,22 @@ function formatTimeStamps(doc) {
     src.createdAt = new Date(src.createdAt).toISOString();
   }
 
+  if (src.updateTime) {
+    src.updateTime = new Date(src.updateTime).toISOString();
+  }
+
+  if (src.firstPublishTime) {
+    src.firstPublishTime = new Date(src.firstPublishTime).toISOString();
+  }
+
+  if (src.publishTime) {
+    src.publishTime = new Date(src.publishTime).toISOString();
+  }
+
+  if (src.scheduledTime) {
+    src.scheduledTime = new Date(src.scheduledTime).toISOString();
+  }
+
   doc._source = src;
 
   return doc;
