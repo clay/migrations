@@ -24,24 +24,24 @@ STREAM
   .map(arr => {
     return { key: arr[0], value: arr[1] }
   })
+  .reject(isPublishedDefaultInstance)
+  .map(h.of)
+  .mergeWithLimit(MERGE_LIMIT)
+  .map(splitDataAndMeta)
+  .map(transformLayoutRef)
+  .map(insertItem)
+  .mergeWithLimit(MERGE_LIMIT)
+  // .map(insertMeta)
+  // .mergeWithLimit(MERGE_LIMIT)
+  .map(display)
   .each(h.log)
+  .done(() => {
+    console.log('Migration finished');
+    process.exit();
+  });
 
 // STREAM
-//   .reject(isPublishedDefaultInstance)
-//   .map(h.of)
-//   .mergeWithLimit(MERGE_LIMIT)
-//   .map(splitDataAndMeta)
-//   .map(transformLayoutRef)
-//   .map(insertItem)
-//   .mergeWithLimit(MERGE_LIMIT)
-//   // .map(insertMeta)
-//   // .mergeWithLimit(MERGE_LIMIT)
-//   .map(display)
-//   .each(h.log)
-//   .done(() => {
-//     console.log('Migration finished');
-//     process.exit();
-//   });
+
 
 
 
@@ -189,5 +189,5 @@ if (LAYOUTS_WHITELIST && !_.isArray(LAYOUTS_WHITELIST)) {
   LAYOUTS = LAYOUTS_WHITELIST || [];
 }
 
-redisClient = redis.createClient(REDIS_PORT, REDIS_HOST);
-client = { hscan: promisify(redisClient.hscan).bind(redisClient) };
+// redisClient = redis.createClient(REDIS_PORT, REDIS_HOST);
+// client = { hscan: promisify(redisClient.hscan).bind(redisClient) };
