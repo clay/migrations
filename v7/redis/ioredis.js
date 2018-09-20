@@ -50,27 +50,19 @@ STREAM
 
 pg.setup()
   .then(() => {
-    var stream = client.hscanStream('mydb:h', {
+    h(client.hscanStream('mydb:h', {
       // only returns keys following the pattern of `user:*`
       match: MATCH_PATTERN,
       // returns approximately 100 elements per call
       count: MERGE_LIMIT
-    });
+    }))
+    .flatten()
+  .batch(2)
+  .map(arr => {
+    return { key: arr[0], value: arr[1] }
+  })
+  .each(h.log)
 
-    // stream.pipe(STREAM);
-    stream.on('data', function (resultKeys) {
-      // `resultKeys` is an array of strings representing key names.
-      // Note that resultKeys may contain 0 keys, and that it will sometimes
-      // contain duplicates due to SCAN's implementation in Redis.
-      for (var i = 0; i < resultKeys.length; i++) {
-        STREAM.write(resultKeys[i]);
-      }
-    });
-
-    stream.on('end', function () {
-      console.log('\n\n\nDONE');
-      STREAM.write(h.nil);
-    });
   });
 
 
