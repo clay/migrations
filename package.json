@@ -17,7 +17,7 @@
   },
   "homepage": "https://github.com/clay/migrations#readme",
   "dependencies": {
-    "amphora-storage-postgres": "1.0.0",
+    "amphora-storage-postgres": "1.0.1",
     "clayutils": "^2.6.0",
     "dotenv": "^6.0.0",
     "highland": "^2.13.0",
