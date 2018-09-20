@@ -28,6 +28,7 @@ let redisClient, client, LAYOUTS;
 function scan(cursor, accu, match) {
   return client.hscan(REDIS_HASH, cursor, 'MATCH', match, 'COUNT', 1000)
     .then((results) => {
+      console.log(`cursor is ${cursor}`);
       console.log(`adding ${_.chunk(results[1], 2).length} items to accumulator`);
       _.forEach(_.chunk(results[1], 2), (cmpt) => {
         STREAM.write({ key: cmpt[0], value: cmpt[1] });
