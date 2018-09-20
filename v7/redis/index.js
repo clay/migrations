@@ -11,8 +11,7 @@ const { promisify } = require('util'),
   args = require('yargs').argv,
   { REDIS_HOST, REDIS_PORT, REDIS_HASH, LAYOUTS_WHITELIST } = process.env,
   MERGE_LIMIT = args.mergeLimit || 1,
-  MATCH_PATTERN = args.match || '*',
-  STREAM = h();
+  MATCH_PATTERN = args.match || '*';
 
 let redisClient, client, LAYOUTS;
 
@@ -26,10 +25,9 @@ let redisClient, client, LAYOUTS;
  * @returns {Promise}
  */
 function scan(cursor, accu, match) {
-  return client.hscan(REDIS_HASH, cursor, 'MATCH', match)
+  return client.hscan(REDIS_HASH, cursor, 'MATCH', match, 'COUNT', 1000)
     .then((results) => {
       _.forEach(_.chunk(results[1], 2), (cmpt) => {
-        STREAM.write({ key: cmpt[0], value: cmpt[1] });
         accu.push({ key: cmpt[0], value: cmpt[1] })
       });
 
@@ -40,9 +38,6 @@ function scan(cursor, accu, match) {
       }
     });
 }
-
-
-
 
 /**
  * Validates to make sure the key isn't the default published instance (persisted by mistake from poorly written bootstraps).
@@ -149,22 +144,24 @@ function transformLayoutRef(item) {
   return item;
 }
 
-STREAM
-  .reject(isPublishedDefaultInstance)
-  .map(h.of)
-  .mergeWithLimit(MERGE_LIMIT)
-  .map(splitDataAndMeta)
-  .map(transformLayoutRef)
-  .map(insertItem)
-  .mergeWithLimit(MERGE_LIMIT)
-  .map(insertMeta)
-  .mergeWithLimit(MERGE_LIMIT)
-  .map(display)
-  .each(h.log)
-  .done(() => {
-    console.log('Migration finished');
-    process.exit();
-  });
+function insertItems(items) {
+  h(items)
+    .reject(isPublishedDefaultInstance)
+    .map(h.of)
+    .mergeWithLimit(MERGE_LIMIT)
+    .map(splitDataAndMeta)
+    .map(transformLayoutRef)
+    .map(insertItem)
+    .mergeWithLimit(MERGE_LIMIT)
+    // .map(insertMeta)
+    // .mergeWithLimit(MERGE_LIMIT)
+    .map(display)
+    .each(h.log)
+    .done(() => {
+      console.log('Migration finished');
+      process.exit();
+    });
+}
 
 function display(item) {
   return `${item.error ? 'ERROR' : 'SUCCESS'}: ${item.key}`;
@@ -197,8 +194,4 @@ client = { hscan: promisify(redisClient.hscan).bind(redisClient) };
 
 pg.setup()
   .then(() => scan(0, [], MATCH_PATTERN)) // match can be changed to '*_pages*' '*_components*' etc to only scan for certain types
-  .then((items) => {
-    console.log(`Scan finished, ${items.length} items found`);
-    console.log('starting postgres migration...');
-    STREAM.write(h.nil);
-  });
+  .then(insertItems)
