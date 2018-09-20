@@ -72,6 +72,14 @@ pg.setup()
   // .map(insertMeta)
   // .mergeWithLimit(MERGE_LIMIT)
   .map(display)
+  .errors(function (err, push) {
+      console.log(err)
+      push(err)
+      // else {
+      //     // otherwise, re-throw the error
+      //     push(err);
+      // }
+  })
   .each(h.log)
   .done(() => {
     console.log('Migration finished');
