@@ -27,9 +27,12 @@ let redisClient, client, LAYOUTS;
 function scan(cursor, accu, match) {
   return client.hscan(REDIS_HASH, cursor, 'MATCH', match, 'COUNT', 1000)
     .then((results) => {
+      console.log(`adding ${_.chunk(results[1], 2).length} items to accumulator`);
       _.forEach(_.chunk(results[1], 2), (cmpt) => {
         accu.push({ key: cmpt[0], value: cmpt[1] })
       });
+
+      console.log(`current total is ${accu.length}`);
 
       if (results[0] === '0') {
         return accu;
