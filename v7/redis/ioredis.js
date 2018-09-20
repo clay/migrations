@@ -18,28 +18,28 @@ const Redis = require('ioredis'),
 
 
 
-STREAM
-  .flatten()
-  .batch(2)
-  .map(arr => {
-    return { key: arr[0], value: arr[1] }
-  })
-  .reject(isPublishedDefaultInstance)
-  .map(h.of)
-  .mergeWithLimit(MERGE_LIMIT)
-  .map(splitDataAndMeta)
-  .map(transformLayoutRef)
-  .tap(h.log)
-  .map(insertItem)
-  .mergeWithLimit(MERGE_LIMIT)
-  // .map(insertMeta)
-  // .mergeWithLimit(MERGE_LIMIT)
-  .map(display)
-  .each(h.log)
-  .done(() => {
-    console.log('Migration finished');
-    process.exit();
-  });
+// STREAM
+//   .flatten()
+//   .batch(2)
+//   .map(arr => {
+//     return { key: arr[0], value: arr[1] }
+//   })
+//   .reject(isPublishedDefaultInstance)
+//   .map(h.of)
+//   .mergeWithLimit(MERGE_LIMIT)
+//   .map(splitDataAndMeta)
+//   .map(transformLayoutRef)
+//   .tap(h.log)
+//   .map(insertItem)
+//   .mergeWithLimit(MERGE_LIMIT)
+//   // .map(insertMeta)
+//   // .mergeWithLimit(MERGE_LIMIT)
+//   .map(display)
+//   .each(h.log)
+//   .done(() => {
+//     console.log('Migration finished');
+//     process.exit();
+//   });
 
 // STREAM
 
@@ -61,7 +61,22 @@ pg.setup()
   .map(arr => {
     return { key: arr[0], value: arr[1] }
   })
+  .reject(isPublishedDefaultInstance)
+  .map(h.of)
+  .mergeWithLimit(MERGE_LIMIT)
+  .map(splitDataAndMeta)
+  .map(transformLayoutRef)
+  .tap(h.log)
+  .map(insertItem)
+  .mergeWithLimit(MERGE_LIMIT)
+  // .map(insertMeta)
+  // .mergeWithLimit(MERGE_LIMIT)
+  .map(display)
   .each(h.log)
+  .done(() => {
+    console.log('Migration finished');
+    process.exit();
+  });
 
   });
 
