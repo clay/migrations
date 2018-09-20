@@ -194,5 +194,11 @@ client = { hscan: promisify(redisClient.hscan).bind(redisClient) };
 
 pg.setup()
   .then(() => scan(0, [], MATCH_PATTERN)) // match can be changed to '*_pages*' '*_components*' etc to only scan for certain types
+  .then((items) => {
+    console.log(`Scan finished, ${items.length} items found`);
+    console.log('starting postgres migration...');
+
+    return Promise.resolve(items);
+  })
   .then(insertItems)
 
