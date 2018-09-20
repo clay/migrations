@@ -11,7 +11,8 @@ const { promisify } = require('util'),
   args = require('yargs').argv,
   { REDIS_HOST, REDIS_PORT, REDIS_HASH, LAYOUTS_WHITELIST } = process.env,
   MERGE_LIMIT = args.mergeLimit || 1,
-  MATCH_PATTERN = args.match || '*';
+  MATCH_PATTERN = args.match || '*',
+  STREAM = h();
 
 let redisClient, client, LAYOUTS;
 
@@ -29,13 +30,15 @@ function scan(cursor, accu, match) {
     .then((results) => {
       console.log(`adding ${_.chunk(results[1], 2).length} items to accumulator`);
       _.forEach(_.chunk(results[1], 2), (cmpt) => {
-        accu.push({ key: cmpt[0], value: cmpt[1] })
+        STREAM.write({ key: cmpt[0], value: cmpt[1] });
+        // accu.push({ key: cmpt[0], value: cmpt[1] })
       });
 
-      console.log(`current total is ${accu.length}`);
+      // console.log(`current total is ${accu.length}`);
 
       if (results[0] === '0') {
-        return accu;
+        STREAM.write(h.nil);
+        return;
       } else {
         return scan(parseInt(results[0]), accu, match);
       }
@@ -147,8 +150,8 @@ function transformLayoutRef(item) {
   return item;
 }
 
-function insertItems(items) {
-  h(items)
+// function insertItems(items) {
+  STREAM
     .reject(isPublishedDefaultInstance)
     .map(h.of)
     .mergeWithLimit(MERGE_LIMIT)
@@ -164,7 +167,7 @@ function insertItems(items) {
       console.log('Migration finished');
       process.exit();
     });
-}
+// }
 
 function display(item) {
   return `${item.error ? 'ERROR' : 'SUCCESS'}: ${item.key}`;
@@ -197,4 +200,4 @@ client = { hscan: promisify(redisClient.hscan).bind(redisClient) };
 
 pg.setup()
   .then(() => scan(0, [], MATCH_PATTERN)) // match can be changed to '*_pages*' '*_components*' etc to only scan for certain types
-  .then(insertItems)
+  // .then(insertItems)
