@@ -58,6 +58,10 @@ pg.setup()
   });
 
 
+  stream.on('end', function () {
+    console.log('\n\n\nDONE');
+  });
+
 /**
  * Validates to make sure the key isn't the default published instance (persisted by mistake from poorly written bootstraps).
  * @param {String} key
