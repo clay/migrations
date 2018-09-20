@@ -29,6 +29,7 @@ STREAM
   .mergeWithLimit(MERGE_LIMIT)
   .map(splitDataAndMeta)
   .map(transformLayoutRef)
+  .tap(h.log)
   .map(insertItem)
   .mergeWithLimit(MERGE_LIMIT)
   // .map(insertMeta)
