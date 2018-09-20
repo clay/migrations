@@ -28,18 +28,15 @@ let redisClient, client, LAYOUTS;
 function scan(cursor, accu, match) {
   return client.hscan(REDIS_HASH, cursor, 'MATCH', match, 'COUNT', 1000)
     .then((results) => {
-      console.log(`cursor is ${cursor}`);
       console.log(`adding ${_.chunk(results[1], 2).length} items to accumulator`);
       _.forEach(_.chunk(results[1], 2), (cmpt) => {
-        STREAM.write({ key: cmpt[0], value: cmpt[1] });
-        // accu.push({ key: cmpt[0], value: cmpt[1] })
+         accu.push({ key: cmpt[0], value: cmpt[1] })
       });
 
-      // console.log(`current total is ${accu.length}`);
+       console.log(`current total is ${accu.length}`);
 
       if (results[0] === '0') {
-        STREAM.write(h.nil);
-        return;
+        return accu;
       } else {
         return scan(parseInt(results[0]), accu, match);
       }
@@ -151,8 +148,8 @@ function transformLayoutRef(item) {
   return item;
 }
 
-// function insertItems(items) {
-  STREAM
+ function insertItems(items) {
+  h(items)
     .reject(isPublishedDefaultInstance)
     .map(h.of)
     .mergeWithLimit(MERGE_LIMIT)
@@ -168,7 +165,7 @@ function transformLayoutRef(item) {
       console.log('Migration finished');
       process.exit();
     });
-// }
+ }
 
 function display(item) {
   return `${item.error ? 'ERROR' : 'SUCCESS'}: ${item.key}`;
@@ -201,4 +198,4 @@ client = { hscan: promisify(redisClient.hscan).bind(redisClient) };
 
 pg.setup()
   .then(() => scan(0, [], MATCH_PATTERN)) // match can be changed to '*_pages*' '*_components*' etc to only scan for certain types
-  // .then(insertItems)
+   .then(insertItems)
