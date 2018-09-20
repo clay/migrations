@@ -14,7 +14,7 @@ const Redis = require('ioredis'),
   MATCH_PATTERN = args.match || '*',
   STREAM = h();
 
-  let redisClient, client, LAYOUTS;
+  let LAYOUTS;
 
 
 
