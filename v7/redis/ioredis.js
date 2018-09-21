@@ -17,75 +17,35 @@ const Redis = require('ioredis'),
   let LAYOUTS;
 
 
-
-// STREAM
-//   .flatten()
-//   .batch(2)
-//   .map(arr => {
-//     return { key: arr[0], value: arr[1] }
-//   })
-//   .reject(isPublishedDefaultInstance)
-//   .map(h.of)
-//   .mergeWithLimit(MERGE_LIMIT)
-//   .map(splitDataAndMeta)
-//   .map(transformLayoutRef)
-//   .tap(h.log)
-//   .map(insertItem)
-//   .mergeWithLimit(MERGE_LIMIT)
-//   // .map(insertMeta)
-//   // .mergeWithLimit(MERGE_LIMIT)
-//   .map(display)
-//   .each(h.log)
-//   .done(() => {
-//     console.log('Migration finished');
-//     process.exit();
-//   });
-
-// STREAM
-
-
-
-
-
-
 pg.setup()
   .then(() => {
     h(client.hscanStream('mydb:h', {
       // only returns keys following the pattern of `user:*`
       match: MATCH_PATTERN,
       // returns approximately 100 elements per call
-      count: MERGE_LIMIT
+      count: 1000
     }))
     .flatten()
-  .batch(2)
-  .map(arr => {
-    return { key: arr[0], value: arr[1] }
-  })
-  .reject(isPublishedDefaultInstance)
-  .map(h.of)
-  .mergeWithLimit(MERGE_LIMIT)
-  .map(splitDataAndMeta)
-  .map(transformLayoutRef)
-  .tap(h.log)
-  .map(insertItem)
-  .mergeWithLimit(MERGE_LIMIT)
-  // .map(insertMeta)
-  // .mergeWithLimit(MERGE_LIMIT)
-  .map(display)
-  .errors(function (err, push) {
-      console.log(err)
-      push(err)
-      // else {
-      //     // otherwise, re-throw the error
-      //     push(err);
-      // }
-  })
-  .each(h.log)
-  .done(() => {
-    console.log('Migration finished');
-    process.exit();
-  });
-
+    .batch(2)
+    .map(arr => {
+      return { key: arr[0], value: arr[1] }
+    })
+    .reject(isPublishedDefaultInstance)
+    .ratelimit(700, 1000)
+    // .map(h.of)
+    // .mergeWithLimit(MERGE_LIMIT)
+    .map(splitDataAndMeta)
+    .map(transformLayoutRef)
+    .map(insertItem)
+    .mergeWithLimit(MERGE_LIMIT)
+    // .map(insertMeta)
+    // .mergeWithLimit(MERGE_LIMIT)
+    .map(display)
+    .each(h.log)
+    .done(() => {
+      console.log('Migration finished');
+      process.exit();
+    });
   });
 
 
