@@ -11,18 +11,15 @@ const Redis = require('ioredis'),
   args = require('yargs').argv,
   { REDIS_HOST, REDIS_PORT, REDIS_HASH, LAYOUTS_WHITELIST } = process.env,
   MERGE_LIMIT = args.mergeLimit || 1,
-  MATCH_PATTERN = args.match || '*',
-  STREAM = h();
-
-  let LAYOUTS;
+  RATE_LIMIT = args.rateLimit || 500,
+  MATCH_PATTERN = args.match || '*';
+let LAYOUTS;
 
 
 pg.setup()
   .then(() => {
     h(client.hscanStream('mydb:h', {
-      // only returns keys following the pattern of `user:*`
       match: MATCH_PATTERN,
-      // returns approximately 100 elements per call
       count: 1000
     }))
     .flatten()
@@ -31,9 +28,7 @@ pg.setup()
       return { key: arr[0], value: arr[1] }
     })
     .reject(isPublishedDefaultInstance)
-    .ratelimit(700, 1000)
-    // .map(h.of)
-    // .mergeWithLimit(MERGE_LIMIT)
+    .ratelimit(RATE_LIMIT, 1000)
     .map(splitDataAndMeta)
     .map(transformLayoutRef)
     .map(insertItem)
@@ -47,8 +42,6 @@ pg.setup()
       process.exit();
     });
   });
-
-
 
 /**
  * Validates to make sure the key isn't the default published instance (persisted by mistake from poorly written bootstraps).
