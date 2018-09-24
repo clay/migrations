@@ -6,8 +6,8 @@ const Redis = require('ioredis'),
   fetch = require('node-fetch'),
   { getIndices } = require('amphora-fs'),
   h = require('highland'),
-  { REDIS_HOST = 'localhost', REDIS_PORT = '6379', REDIS_HASH } = process.env,
-  client = new Redis(`redis://${REDIS_HOST}:${REDIS_PORT}`);
+  { CLAY_STORAGE_CACHE_HOST = 'localhost', REDIS_PORT = '6379', REDIS_HASH } = process.env,
+  client = new Redis(`redis://${CLAY_STORAGE_CACHE_HOST}:${REDIS_PORT}`);
 
 function getJson(uri) {
   return h(fetch(`http://${uri}.json`).then(res => res.json()))
