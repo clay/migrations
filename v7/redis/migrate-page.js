@@ -38,7 +38,7 @@ function connectPg(json) {
 
 function checkPg(uri) {
   return h(
-    pg.get(uri + 1)
+    pg.get(uri)
       .then(() => false)
       .catch(() => Promise.resolve(true))
     );
@@ -54,7 +54,7 @@ function putToPg({ uri, data }) {
 
 function getFromRedis(uri) {
   return h(
-    client.hget('clay', 'nymag.com/daily/intelligencer/_components/clay-paragraph/instances/cjjgnwq5p001j3g5z6x2ch83v@published')
+    client.hget('clay', uri)
       .then(resp => {
         if (resp === null) {
           return resp;
