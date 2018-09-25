@@ -9,7 +9,8 @@ const Redis = require('ioredis'),
   h = require('highland'),
   clayutils = require('clayutils'),
   { CLAY_STORAGE_CACHE_HOST = 'localhost', REDIS_PORT = '6379', REDIS_HASH } = process.env,
-  client = new Redis(`redis://${CLAY_STORAGE_CACHE_HOST}:${REDIS_PORT}`);
+  client = new Redis(`redis://${CLAY_STORAGE_CACHE_HOST}:${REDIS_PORT}`),
+  allKeys = [];
 
 function getJson(uri) {
   return h(
@@ -84,7 +85,7 @@ h(process.stdin)
   .flatMap(getJson)
   .flatMap(connectPg)
   .map(data => getIndices('_ref', data))
-  .map(res => Object.keys(res.refs))
+  .map(res => { allKeys = Object.keys(res.refs); return Object.keys(res.refs); })
   .flatten()
   //.map(checkPublished)
   .filter(item => item !== '_ref')
@@ -95,6 +96,7 @@ h(process.stdin)
   .map(putToPg)
   .parallel(1)
   .tap(uri => { console.log(`Wrote to Postgres: ${uri}`)})
+  .tap(uri => { console.log(allKeys) })
    .map(delFromRedis)
    .parallel(1)
   .each(h.log)
