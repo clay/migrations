@@ -55,12 +55,11 @@ function putToPg({ uri, data }) {
 
 function getFromRedis(uri) {
   return h(
-    client.hget('clay', uri)
+    client.hget('mydb:h', uri)
       .then(resp => {
         if (resp === null) { // check the published instance
-          return client.hget('clay', clayutils.replaceVersion(uri, '@published'))
+          return client.hget('mydb:h', clayutils.replaceVersion(uri, 'published'))
             .then((resp) => {
-              console.log(clayutils.replaceVersion(uri, '@published'), resp)
               if (resp === null) { return resp } // we're SOL
 
               // replace references to published components
@@ -74,7 +73,7 @@ function getFromRedis(uri) {
 }
 
 function delFromRedis(uri) {
-  return h(client.hdel('clay', uri));
+  return h(client.hdel('mydb:h', uri));
 }
 
 h(process.stdin)
