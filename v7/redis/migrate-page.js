@@ -41,22 +41,29 @@ function connectPg() {
 function checkPg(uri) {
   return h(
     pg.get(uri)
-      .then(() => false)
-      .catch(() => Promise.resolve(true))
+      .then(() => ({ uri, exists: true }))
+      .catch(() => ({ uri, exists: false }))
     );
 }
 
 function putToPg({ uri, data }) {
-  return h(
-    pg.put(uri, data, false)
-      .then(() => uri)
-      .catch(() => { throw new Error('Error writing to Postgres')})
-  );
+  if (data) {
+    return h(
+      pg.put(uri, data, false)
+        .then(() => uri)
+        .catch(() => { throw new Error('Error writing to Postgres')})
+    );
+  } else {
+    return h(uri);
+  }
 }
 
-function getFromRedis(uri) {
-  return h(
-    client.hget('mydb:h', uri)
+function getFromRedis(item) {
+  const { uri } = item;
+
+  if (!item.exists) {
+    return h(
+      client.hget('mydb:h', uri)
       .then(resp => {
         if (resp === null) { // check the published instance
           return client.hget('mydb:h', clayutils.replaceVersion(uri, 'published'))
@@ -70,7 +77,10 @@ function getFromRedis(uri) {
 
         return {uri, data: JSON.parse(resp)};
       })
-  );
+    );
+  }
+
+  return h(item);
 }
 
 function delFromRedis(uri) {
@@ -78,19 +88,16 @@ function delFromRedis(uri) {
 }
 
 function handleData(stream) {
-  console.log(stream);
   return stream
     .map(checkPublished)
-    .filter(item => item !== '_ref')
     .map(item => item.replace('@published', ''))
-    .flatFilter(checkPg)
+    .flatMap(checkPg)
     .flatMap(getFromRedis)
     .compact() // Remove any null values from Redis gets. Good for layout data
     .map(putToPg)
     .parallel(1)
     .tap(uri => { console.log(`Wrote to Postgres: ${uri}`)})
     .map((uri) => uri)
-    .otherwise(stream)
 }
 
 connectPg().then(() => {
@@ -101,19 +108,19 @@ connectPg().then(() => {
     .map(checkPublished)
     .flatMap(getJson)
     .map(data => getIndices('_ref', data))
-    .map(res => { allKeys = Object.keys(res.refs).filter(item => item !== '_ref'); return Object.keys(res.refs); })
+    .map(res => Object.keys(res.refs).filter(item => item !== '_ref'))
     .flatten()
     .through(handleData)
     .each(h.log)
     .done(() => {
       console.log('deleting unpublished keys from redis...');
-      h(allKeys)
-        .map(checkPublished)
-        .map(key => ([ 'hdel', 'mydb:h', key ]))
-        .collect()
-        .map((cmds) => h(client.pipeline(cmds).exec().then((res) => res.map((r, idx) => `${r[0] ? `ERROR: ${r[0]} ${cmds[idx][2]}` : `SUCCESS: ${cmds[idx][2]}` }`))))
-        .merge()
-        .each(h.log)
-        .done(process.exit);
+      //h(allKeys)
+        //.map(checkPublished)
+        //.map(key => ([ 'hdel', 'mydb:h', key ]))
+        //.collect()
+        //.map((cmds) => h(client.pipeline(cmds).exec().then((res) => res.map((r, idx) => `${r[0] ? `ERROR: ${r[0]} ${cmds[idx][2]}` : `SUCCESS: ${cmds[idx][2]}` }`))))
+        //.merge()
+        //.each(h.log)
+        //.done(process.exit);
     });
 })
