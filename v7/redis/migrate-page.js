@@ -60,6 +60,7 @@ function getFromRedis(uri) {
         if (resp === null) { // check the published instance
           return client.hget('clay', clayutils.replaceVersion(uri, '@published'))
             .then((resp) => {
+              console.log(clayutils.replaceVersion(uri, '@published'), resp)
               if (resp === null) { return resp } // we're SOL
 
               // replace references to published components
