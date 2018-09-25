@@ -46,15 +46,15 @@ function checkPg(uri) {
     );
 }
 
-function putToPg({ uri, data }) {
-  if (data) {
+function putToPg(item) {
+  if (item.data) {
     return h(
       pg.put(uri, data, false)
-        .then(() => uri)
+        .then(() => item)
         .catch(() => { throw new Error('Error writing to Postgres')})
     );
   } else {
-    return h.of(uri);
+    return h.of(item);
   }
 }
 
@@ -96,8 +96,8 @@ function handleData(stream) {
     .compact() // Remove any null values from Redis gets. Good for layout data
     .map(putToPg)
     .parallel(1)
-    .tap(uri => { console.log(`Wrote to Postgres: ${uri}`)})
-    .map((uri) => uri)
+    .tap(item => { if (!item.exists) {console.log(`Wrote to Postgres: ${uri}`) } })
+    .map((item) => item.uri)
 }
 
 connectPg().then(() => {
