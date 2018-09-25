@@ -111,15 +111,10 @@ connectPg().then(() => {
     .flatten()
     .through(handleData)
     .each(h.log)
-    .done(() => {
-      console.log('deleting unpublished keys from redis...');
-      //h(allKeys)
-        //.map(checkPublished)
-        //.map(key => ([ 'hdel', 'mydb:h', key ]))
-        //.collect()
-        //.map((cmds) => h(client.pipeline(cmds).exec().then((res) => res.map((r, idx) => `${r[0] ? `ERROR: ${r[0]} ${cmds[idx][2]}` : `SUCCESS: ${cmds[idx][2]}` }`))))
-        //.merge()
-        //.each(h.log)
-        //.done(process.exit);
-    });
+    .map(key => ([ 'hdel', 'mydb:h', key ]))
+    .collect()
+    .map((cmds) => h(client.pipeline(cmds).exec().then((res) => res.map((r, idx) => `${r[0] ? `ERROR: ${r[0]} ${cmds[idx][2]}` : `SUCCESS: ${cmds[idx][2]}` }`))))
+    .merge()
+    .each(h.log)
+    .done(process.exit);
 })
