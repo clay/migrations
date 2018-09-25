@@ -57,7 +57,7 @@ function getFromRedis(uri) {
     client.hget('clay', 'nymag.com/daily/intelligencer/_components/clay-paragraph/instances/cjjgnwq5p001j3g5z6x2ch83v@published')
       .then(resp => {
         if (resp === null) {
-          throw new Error(`Somehow got null from Redis for ${uri}`);
+          return resp;
         }
 
         return {uri, data: JSON.parse(resp)};
@@ -83,6 +83,7 @@ h(process.stdin)
   .filter(item => item !== '_ref')
   .flatFilter(checkPg)
   .flatMap(getFromRedis)
+  .compact() // Remove any null values from Redis gets. Good for layout data
   .map(putToPg)
   .parallel(1)
   .tap(uri => { console.log(`Wrote to Postgres: ${uri}`)})
