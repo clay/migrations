@@ -77,8 +77,8 @@ function delFromRedis(uri) {
   return h(client.hdel('mydb:h', uri));
 }
 
-function handleData(stream) {
-  return stream
+function handleData(refs) {
+  return h(refs)
     .map(checkPublished)
     .filter(item => item !== '_ref')
     .map(item => item.replace('@published', ''))
@@ -88,7 +88,7 @@ function handleData(stream) {
     .map(putToPg)
     .parallel(1)
     .tap(uri => { console.log(`Wrote to Postgres: ${uri}`)})
-    .each(h.log)
+    .map(() => refs)
 }
 
 connectPg().then(() => {
@@ -99,18 +99,20 @@ connectPg().then(() => {
     .map(checkPublished)
     .flatMap(getJson)
     .map(data => getIndices('_ref', data))
-    .map(res => { allKeys = Object.keys(res.refs).filter(item => item !== '_ref'); return Object.keys(res.refs); })
-    .flatten()
-    .through(handleData)
+    .map(res => Object.keys(res.refs))
+    .map(handleData)
+    .parallel(1)
+    .each(h.log)
     .done(() => {
       console.log('deleting unpublished keys from redis...');
-      h(allKeys)
-        .map(checkPublished)
-        .map(key => ([ 'hdel', 'mydb:h', key ]))
-        .collect()
-        .map((cmds) => h(client.pipeline(cmds).exec().then((res) => res.map((r, idx) => `${r[0] ? `ERROR: ${r[0]} ${cmds[idx][2]}` : `SUCCESS: ${cmds[idx][2]}` }`))))
-        .merge()
-        .each(h.log)
-        .done(process.exit);
+      process.exit()
+      //h(allKeys)
+        //.map(checkPublished)
+        //.map(key => ([ 'hdel', 'mydb:h', key ]))
+        //.collect()
+        //.map((cmds) => h(client.pipeline(cmds).exec().then((res) => res.map((r, idx) => `${r[0] ? `ERROR: ${r[0]} ${cmds[idx][2]}` : `SUCCESS: ${cmds[idx][2]}` }`))))
+        //.merge()
+        //.each(h.log)
+        //.done(process.exit);
     });
 })
