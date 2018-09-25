@@ -106,6 +106,7 @@ connectPg().then(() => {
     .compact()
     .ratelimit(1, 1000)
     .map(checkPublished)
+    .tap((uri) => console.log(`Migrating ${uri}`))
     .flatMap(getJson)
     .map(data => getIndices('_ref', data))
     .map(res => Object.keys(res.refs).filter(item => item !== '_ref'))
