@@ -116,6 +116,6 @@ connectPg().then(() => {
     .collect()
     .map((cmds) => h(client.pipeline(cmds).exec().then((res) => res.map((r, idx) => `${r[0] ? `ERROR: ${r[0]} ${cmds[idx][2]}` : `SUCCESS: ${cmds[idx][2]}` }`))))
     .merge()
-    .each(h.log)
+    .each((list) => console.log(`deleted ${list.length} unpublished keys from redis`))
     .done(process.exit);
 })
