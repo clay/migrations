@@ -34,8 +34,8 @@ function checkPublished(uri) {
   return uri;
 }
 
-function connectPg(json) {
-  return h(pg.setup().then(() => json));
+function connectPg() {
+  return pg.setup();
 }
 
 function checkPg(uri) {
