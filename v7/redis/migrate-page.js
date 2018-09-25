@@ -95,7 +95,7 @@ function handleData(stream) {
     .compact() // Remove any null values from Redis gets. Good for layout data
     .map(putToPg)
     .parallel(1)
-    .tap(item => { if (!item.exists) {console.log(`Wrote to Postgres: ${uri}`) } })
+    .tap(item => { if (!item.exists) {console.log(`Wrote to Postgres: ${item.uri}`) } })
     .map((item) => item.uri)
 }
 
