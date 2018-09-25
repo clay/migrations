@@ -49,7 +49,7 @@ function checkPg(uri) {
 function putToPg(item) {
   if (item.data) {
     return h(
-      pg.put(uri, data, false)
+      pg.put(item.uri, item.data, false)
         .then(() => item)
         .catch(() => { throw new Error('Error writing to Postgres')})
     );
@@ -90,7 +90,6 @@ function delFromRedis(uri) {
 function handleData(stream) {
   return stream
     .map(checkPublished)
-    .map(item => item.replace('@published', ''))
     .flatMap(checkPg)
     .flatMap(getFromRedis)
     .compact() // Remove any null values from Redis gets. Good for layout data
