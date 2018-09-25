@@ -85,7 +85,7 @@ h(process.stdin)
   .flatMap(getJson)
   .flatMap(connectPg)
   .map(data => getIndices('_ref', data))
-  .map(res => { allKeys = Object.keys(res.refs); return Object.keys(res.refs); })
+  .map(res => { allKeys = Object.keys(res.refs).filter(item => item !== '_ref'); return Object.keys(res.refs); })
   .flatten()
   //.map(checkPublished)
   .filter(item => item !== '_ref')
@@ -100,5 +100,12 @@ h(process.stdin)
    .parallel(1)
   .each(h.log)
   .done(() => {
-    console.log(allKeys);
+    console.log('deleting unpublished keys from redis...');
+    h(allKeys)
+      .map(k => ([ 'hdel', 'mydb:h', key ]))
+      .collect()
+      //.map((cmds) => h(client.pipeline(cmds).exec().then((res) => res.map((r, idx) => `${r[0] ? `ERROR: ${r[0]} ${cmds[idx][2]}` : `SUCCESS: ${cmds[idx][2]}` }`))))
+      //.merge()
+      .each(h.log)
+      .done(process.exit);
   });
