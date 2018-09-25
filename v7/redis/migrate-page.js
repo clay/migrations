@@ -77,35 +77,40 @@ function delFromRedis(uri) {
   return h(client.hdel('mydb:h', uri));
 }
 
-h(process.stdin)
-  .map(buf => buf.toString())
-  .split()
-  .compact()
-  //.map(checkPublished)
-  .flatMap(getJson)
-  .flatMap(connectPg)
-  .map(data => getIndices('_ref', data))
-  .map(res => { allKeys = Object.keys(res.refs).filter(item => item !== '_ref'); return Object.keys(res.refs); })
-  .flatten()
-  //.map(checkPublished)
-  .filter(item => item !== '_ref')
-  .map(item => item.replace('@published', ''))
-  .flatFilter(checkPg)
-  .flatMap(getFromRedis)
-  .compact() // Remove any null values from Redis gets. Good for layout data
-  .map(putToPg)
-  .parallel(1)
-  .tap(uri => { console.log(`Wrote to Postgres: ${uri}`)})
-   .map(delFromRedis)
-   .parallel(1)
-  .each(h.log)
-  .done(() => {
-    console.log('deleting unpublished keys from redis...');
-    h(allKeys)
-      .map(key => ([ 'hdel', 'mydb:h', key ]))
-      .collect()
-      .map((cmds) => h(client.pipeline(cmds).exec().then((res) => res.map((r, idx) => `${r[0] ? `ERROR: ${r[0]} ${cmds[idx][2]}` : `SUCCESS: ${cmds[idx][2]}` }`))))
-      .merge()
-      .each(h.log)
-      .done(process.exit);
-  });
+function handleData(stream) {
+  return stream
+    .map(checkPublished)
+    .filter(item => item !== '_ref')
+    .map(item => item.replace('@published', ''))
+    .flatFilter(checkPg)
+    .flatMap(getFromRedis)
+    .compact() // Remove any null values from Redis gets. Good for layout data
+    .map(putToPg)
+    .parallel(1)
+    .tap(uri => { console.log(`Wrote to Postgres: ${uri}`)})
+    .each(h.log)
+}
+
+connectPg().then(() => {
+  h(process.stdin)
+    .map(buf => buf.toString())
+    .split()
+    .compact()
+    .map(checkPublished)
+    .flatMap(getJson)
+    .map(data => getIndices('_ref', data))
+    .map(res => { allKeys = Object.keys(res.refs).filter(item => item !== '_ref'); return Object.keys(res.refs); })
+    .flatten()
+    .through(handleData)
+    .done(() => {
+      console.log('deleting unpublished keys from redis...');
+      h(allKeys)
+        .map(checkPublished)
+        .map(key => ([ 'hdel', 'mydb:h', key ]))
+        .collect()
+        .map((cmds) => h(client.pipeline(cmds).exec().then((res) => res.map((r, idx) => `${r[0] ? `ERROR: ${r[0]} ${cmds[idx][2]}` : `SUCCESS: ${cmds[idx][2]}` }`))))
+        .merge()
+        .each(h.log)
+        .done(process.exit);
+    });
+})
