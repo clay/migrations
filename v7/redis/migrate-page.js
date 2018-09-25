@@ -104,6 +104,7 @@ connectPg().then(() => {
     .map(buf => buf.toString())
     .split()
     .compact()
+    .ratelimit(1, 1000)
     .map(checkPublished)
     .flatMap(getJson)
     .map(data => getIndices('_ref', data))
