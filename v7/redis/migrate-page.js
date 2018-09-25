@@ -23,6 +23,10 @@ function getJson(uri) {
 
         return res;
       })
+    .catch((e) => {
+      console.log(`error getting page json for ${uri}`);
+      return {}
+    })
     );
 }
 
