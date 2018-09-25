@@ -32,7 +32,8 @@ function getJson(uri) {
 
 function checkPublished(uri) {
   if (uri.includes('@published')) {
-    throw new Error('Cannot be a published uri!');
+    console.log(`${uri} is published. skipping...`);
+    return null;
   }
 
   return uri;
@@ -94,6 +95,7 @@ function delFromRedis(uri) {
 function handleData(stream) {
   return stream
     .map(checkPublished)
+    .compact()
     .flatMap(checkPg)
     .flatMap(getFromRedis)
     .compact() // Remove any null values from Redis gets. Good for layout data
@@ -110,6 +112,7 @@ connectPg().then(() => {
     .compact()
     .ratelimit(1, 2000)
     .map(checkPublished)
+    .compact()
     .tap((uri) => console.log(`Migrating ${uri}`))
     .flatMap(getJson)
     .map(data => getIndices('_ref', data))
