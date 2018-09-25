@@ -7,6 +7,7 @@ const Redis = require('ioredis'),
   { getIndices } = require('amphora-fs'),
   pg = require('amphora-storage-postgres'),
   h = require('highland'),
+  clayutils = require('clayutils'),
   { CLAY_STORAGE_CACHE_HOST = 'localhost', REDIS_PORT = '6379', REDIS_HASH } = process.env,
   client = new Redis(`redis://${CLAY_STORAGE_CACHE_HOST}:${REDIS_PORT}`);
 
@@ -56,8 +57,14 @@ function getFromRedis(uri) {
   return h(
     client.hget('clay', uri)
       .then(resp => {
-        if (resp === null) {
-          return resp;
+        if (resp === null) { // check the published instance
+          return client.hget('clay', replaceVersion(uri, '@published'))
+            .then((resp) => {
+              if (resp === null) { return resp } // we're SOL
+
+              // replace references to published components
+              return { uri, data: JSON.parse(resp.replace(/@published\"/g, '"')) };
+            });
         }
 
         return {uri, data: JSON.parse(resp)};
@@ -82,8 +89,8 @@ h(process.stdin)
   //.map(checkPublished)
   .filter(item => item !== '_ref')
   .map(item => item.replace('@published', ''))
-  //.flatFilter(checkPg)
-  //.flatMap(getFromRedis)
+  .flatFilter(checkPg)
+  .flatMap(getFromRedis)
   //.compact() // Remove any null values from Redis gets. Good for layout data
   //.map(putToPg)
   //.parallel(1)
