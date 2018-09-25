@@ -58,7 +58,7 @@ function getFromRedis(uri) {
     client.hget('clay', uri)
       .then(resp => {
         if (resp === null) { // check the published instance
-          return client.hget('clay', replaceVersion(uri, '@published'))
+          return client.hget('clay', clayutils.replaceVersion(uri, '@published'))
             .then((resp) => {
               if (resp === null) { return resp } // we're SOL
 
