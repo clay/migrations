@@ -54,7 +54,7 @@ function putToPg({ uri, data }) {
         .catch(() => { throw new Error('Error writing to Postgres')})
     );
   } else {
-    return uri;
+    return h.of(uri);
   }
 }
 
@@ -80,7 +80,7 @@ function getFromRedis(item) {
     );
   }
 
-  return item;
+  return h.of(item);
 }
 
 function delFromRedis(uri) {
