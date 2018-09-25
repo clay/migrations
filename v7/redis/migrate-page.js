@@ -88,7 +88,6 @@ function handleData(refs) {
     .map(putToPg)
     .parallel(1)
     .tap(uri => { console.log(`Wrote to Postgres: ${uri}`)})
-    .map(() => refs)
 }
 
 connectPg().then(() => {
@@ -100,7 +99,7 @@ connectPg().then(() => {
     .flatMap(getJson)
     .map(data => getIndices('_ref', data))
     .map(res => Object.keys(res.refs))
-    .map(handleData)
+    .tap(handleData)
     .parallel(1)
     .each(h.log)
     .done(() => {
