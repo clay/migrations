@@ -91,11 +91,11 @@ h(process.stdin)
   .map(item => item.replace('@published', ''))
   .flatFilter(checkPg)
   .flatMap(getFromRedis)
-  //.compact() // Remove any null values from Redis gets. Good for layout data
-  //.map(putToPg)
-  //.parallel(1)
-  //.tap(uri => { console.log(`Wrote to Postgres: ${uri}`)})
-  // .map(delFromRedis)
-  // .parallel(1)
+  .compact() // Remove any null values from Redis gets. Good for layout data
+  .map(putToPg)
+  .parallel(1)
+  .tap(uri => { console.log(`Wrote to Postgres: ${uri}`)})
+   //.map(delFromRedis)
+   //.parallel(1)
   .each(h.log)
   .done(process.exit);
