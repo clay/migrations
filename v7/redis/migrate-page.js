@@ -16,12 +16,12 @@ function getJson(uri) {
   return h(
     fetch(`http://${uri}.json`)
       .then(res => res.json())
-      .then(res => {
-        if (res.message && res.message === 'Not Found') {
+      .then(data => {
+        if (data.message && data.message === 'Not Found') {
           throw new Error('Cannot get page JSON');
         }
 
-        return res;
+        return { uri, data };
       })
     .catch((e) => {
       console.log(`error getting page json for ${uri}`);
@@ -110,13 +110,13 @@ connectPg().then(() => {
     .map(buf => buf.toString())
     .split()
     .compact()
-    .ratelimit(1, 2000)
+    .ratelimit(1, 1000)
     .map(checkPublished)
     .compact()
     .tap((uri) => console.log(`Migrating ${uri}`))
     .flatMap(getJson)
-    .map(data => getIndices('_ref', data))
-    .map(res => Object.keys(res.refs).filter(item => item !== '_ref'))
+    .map(page => getIndices(page.uri, page.data))
+    .map(res => Object.keys(res.refs))
     .flatten()
     .through(handleData)
     .map(key => ([ 'hdel', 'mydb:h', key ]))
