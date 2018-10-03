@@ -79,10 +79,6 @@ function getFromRedis(item) {
   return h.of(item);
 }
 
-function delFromRedis(uri) {
-  return h(client.hdel('mydb:h', uri));
-}
-
 function handleData(stream) {
   return stream
     .compact()
