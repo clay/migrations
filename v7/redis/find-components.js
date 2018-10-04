@@ -24,7 +24,7 @@ pg.setup()
     .map(arr => {
       return { key: arr[0], value: arr[1] }
     })
-    .reject(isPublishedDefaultInstance)
+    // .reject(isPublishedDefaultInstance)
     .map(display)
     .each(h.log)
     .done(() => {
